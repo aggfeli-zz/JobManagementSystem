@@ -1,0 +1,9 @@
+submit ls
+status 5
+status-all 6
+show-active
+show-pools
+show-finished
+suspend 5
+resume 6
+shutdown
