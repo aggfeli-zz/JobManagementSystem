@@ -29,7 +29,7 @@ int main(int argc, char** argv)
     int i, jobs_pool = 0, fd, nwrite;
     char buf[100],  *jms_in, *jms_out, *operations_file; 
     
-    for (i = 1; i < 4; i += 2)
+    for (i = 1; i < 6; i += 2)
     {
         if(strcmp(argv[i], "-o") == 0)
         {
@@ -61,16 +61,39 @@ int main(int argc, char** argv)
     int coord_to_console, console_to_coord;
 
     char str[SIZE];
+    FILE *file;
+    int flag = 0, numoflines;
+    file = fopen(operations_file,"r");   
+    if (file == NULL) cout << "Unable to open  operations file" << endl; 
+    else
+    {
+        flag = 1;
+        numoflines = 0;
+        while ( fgets(buf, sizeof(buf), file) != NULL ) numoflines++;
+        rewind (file);
+    }
+    cout << "LINESSSS " << numoflines << endl;
     while(strcmp(str, "exit") != 0)
     {
-        printf("Input message to server: ");
+        if (flag == 0) 
+        {printf("Input message to server: ");
         //scanf("%[^\n]s", str);
         cin.getline(str,sizeof(str)); 
-        //cout <<"str  " << str<< endl;
-
+        cout <<"str  " << str<< endl;
+        //strcpy(str, "exit");
+        }
+        else
+        {
+            fgets(str, sizeof(str), file); 
+            numoflines--;
+            cout << "LINESSSS " << numoflines << endl;
+            if (numoflines == 0) {flag = 0; fclose(file);}      
+        }
+        cout <<"1"<< endl;
         /* write str to the FIFO */
         console_to_coord = open(myfifo, O_WRONLY);
         if(console_to_coord < 0) { perror ("fifo open error console_to_coord" ); exit (1) ; }
+        cout <<"2"<< endl;
         coord_to_console = open(myfifo2, O_RDONLY);
         if(coord_to_console < 0) { perror ("fifo open error coord_to_console" ); exit (1) ; }
 
@@ -78,6 +101,7 @@ int main(int argc, char** argv)
             perror("Write:");//print error
             exit(-1);
         }
+        cout <<"3"<< endl;
         if(read(coord_to_console,str,sizeof(str)) < 0){
             perror("Read:"); //error check
             exit(-1);

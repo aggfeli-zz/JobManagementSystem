@@ -32,15 +32,15 @@ void Pool::IncreaseJobs(int counter)
     jobs_id[current_jobs] = counter;
 }
 
-void Pool::Job_submit(char *temp, int position)
+void Pool::Job_submit(char *temp, int position, int flag, char *path)
 {
-    cout << "******" << endl;
-    //current_jobs++;
-    cout << "Current Jobs " << current_jobs << endl;
-    char poolin[10], poolout[11];
-    sprintf(poolin, "pool%din%d", position, current_jobs); 
-    sprintf(poolout, "pool%dout%d", position, current_jobs);
-    if (mkfifo(poolin, 0666) == -1)
+    //cout << "Current Jobs " << current_jobs << endl;
+    char poolin[100], poolout[100], directory[100], str_time[100], str_date[100];
+    time_t t;
+    struct tm *tm;
+    sprintf(poolin, "%spool%din%d", path, position, current_jobs); 
+    sprintf(poolout,"%spool%dout%d", path, position, current_jobs);
+    /*if (mkfifo(poolin, 0666) == -1)
     {
         printf("fifo in error %s", strerror(errno));
     }
@@ -49,7 +49,7 @@ void Pool::Job_submit(char *temp, int position)
     {
         printf("fifo out error %s", strerror(errno));
     }
-    cout << "Fifo done" << endl;
+    cout << "Fifo done" << endl;*/
     
     /*cout << "Child Process" << endl;
     printf ( "Child Pool: Child’s PID: %d\n", getpid());
@@ -91,11 +91,23 @@ void Pool::Job_submit(char *temp, int position)
         mess_to_coord = open(poolout, O_WRONLY);
 
 
-        read(mess_from_coord, str, SIZE);
+        //read(mess_from_coord, str, SIZE);
         jobs_status[current_jobs] = 1;
+
+        t = time(NULL);
+        tm = localtime(&t);
+
+        strftime(str_time, sizeof(str_time), "%H%M%S", tm);
+        strftime(str_date, sizeof(str_date), "%Y%m%d", tm);
+        
+        //cout << str_time << endl;
+        //cout << str_date << endl;
+        sprintf(directory, "%ssdi1300192_%d_%d_%s_%s", path, jobs_id[current_jobs], getpid(), str_date, str_time ); 
+        if (mkdir(directory, 0700) == -1)
+            cout << "error: mkdir :" << directory << endl;
         //exec
         jobs_status[current_jobs] = 0;
-        strcpy(str, "Done!");                          
+        strcpy(str, "Job is done!");                          
         write(mess_to_coord,str,SIZE);
 
 
@@ -117,7 +129,7 @@ void Pool::Job_submit(char *temp, int position)
         pid_t pid;
         int status;
         pool_pid = getpid();
-        int mess_from_pool, mess_to_pool;
+        /*int mess_from_pool, mess_to_pool;
         char str[SIZE];
         mess_to_pool = open(poolin, O_WRONLY);
         if(mess_to_pool < 0) { perror ("fifo open error mess_to_pool" ); exit (1) ; }
@@ -136,7 +148,7 @@ void Pool::Job_submit(char *temp, int position)
         printf("\n...received from pool: %s\n\n\n",str);
 
         close(mess_to_pool);
-        close(mess_from_pool);
+        close(mess_from_pool);*/
         
         pid = waitpid(kid, &status, 0);
         //current_jobs--;
@@ -186,27 +198,45 @@ int Pool::get_current_Jobs()
 
 void Pool:: suspendJob(int j)
 {
-    jobs_status[j] = 2; //Make status 2 which is for suspended
-    if (kill(jobs_pid[j], SIGSTOP) == -1)
-        cout << "SIGSTOP error" << endl;
+    if(jobs_status[j] == 1) //If job is active, suspend it
+    {
+        jobs_status[j] = 2; //Make status 2 which is for suspended
+        if (kill(jobs_pid[j], SIGSTOP) == -1)
+            cout << "SIGSTOP error" << endl;
+    }
+    else
+        cout << "Job can't be suspended" << endl;
 }
 
 void Pool:: resumeJob(int j)
 {
-    jobs_status[j] = 1; //Make status 1 which is for active
-    if (kill(jobs_pid[j], SIGCONT) == -1)
-        cout << "SIGCONT error" << endl;  
+    if(jobs_status[j] == 2) //If job has been suspended, activate it again
+    {
+        jobs_status[j] = 1; //Make status 1 which is for active
+        if (kill(jobs_pid[j], SIGCONT) == -1)
+            cout << "SIGCONT error" << endl;  
+    }
+    else
+        cout << "Job can't be activated" << endl;
 }
 
 void Pool:: Shutdown(int &activejobs)
 {
     for(int i = 0; i < current_jobs; i++)
     {
-        if(jobs_status[i] == 1) 
+        if(kill(jobs_pid[i], 0) == 0) {
             activejobs++;
         if (kill(jobs_pid[i], SIGTERM) == -1)
             cout << "SIGTERM error" << endl;  
+        }   cout << kill(jobs_pid[i], 0) << endl;
     }
-    if (kill(pool_pid, SIGTERM) == -1)
-            cout << "SIGTERM error" << endl;  
+    //cout <<"after kill 1" << endl;
+    if(kill(pool_pid, 0) == 0){
+        //cout<<"mphke " << endl;
+        if (kill(pool_pid, SIGTERM) == -1)
+                cout << "SIGTERM error" << endl;  
+        //cout <<"bghke" << endl;
+    }
+        
+    //cout <<"after kill 2" << endl;
 }

@@ -1,4 +1,9 @@
-submit ls
+submit 1
+submit 2
+submit 3
+submit 4
+submit 5
+submit 6
 status 5
 status-all 6
 show-active

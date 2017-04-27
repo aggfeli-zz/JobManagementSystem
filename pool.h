@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <string.h>
+#include <time.h>
 
 using namespace std;
 
@@ -34,7 +35,7 @@ public:
     virtual ~Pool();
     int get_Jobs();
     int get_current_Jobs();
-    void Job_submit(char *temp, int position);
+    void Job_submit(char *temp, int position, int flag, char *path);
     void IncreaseJobs(int counter);
     int get_ID(int j);
     int get_Status(int j);
