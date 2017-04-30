@@ -106,6 +106,8 @@ jms_coord.o: jms_coord.cpp
 pool.o: pool.cpp 
 	g++ -std=c++0x -c -g pool.cpp 
 
+jms_script: jms_script.sh
+	chmod +x jms_script.sh
 	
 .all-pre:
 # Add your pre 'all' code here...
