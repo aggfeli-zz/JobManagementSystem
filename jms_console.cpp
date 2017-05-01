@@ -65,35 +65,31 @@ int main(int argc, char** argv)
     int flag = 0, numoflines;
     file = fopen(operations_file,"r");   
     if (file == NULL) cout << "Unable to open  operations file" << endl; 
-    else
+    else                    //Count how many commands we have
     {
         flag = 1;
         numoflines = 0;
         while ( fgets(buf, sizeof(buf), file) != NULL ) numoflines++;
         rewind (file);
     }
-    cout << "LINESSSS " << numoflines << endl;
+    
     while(strcmp(str, "exit") != 0)
     {
         if (flag == 0) 
-        {printf("Input message to server: ");
-        //scanf("%[^\n]s", str);
-        cin.getline(str,sizeof(str)); 
-        cout <<"str  " << str<< endl;
-        //strcpy(str, "exit");
+        {
+            printf("Input message to coord: ");        
+            cin.getline(str,sizeof(str)); 
         }
         else
         {
             fgets(str, sizeof(str), file); 
-            numoflines--;
-            cout << "LINESSSS " << numoflines << endl;
+            numoflines--;            
             if (numoflines == 0) {flag = 0; fclose(file);}      
         }
-        cout <<"1"<< endl;
+
         /* write str to the FIFO */
         console_to_coord = open(myfifo, O_WRONLY);
         if(console_to_coord < 0) { perror ("fifo open error console_to_coord" ); exit (1) ; }
-        cout <<"2"<< endl;
         coord_to_console = open(myfifo2, O_RDONLY);
         if(coord_to_console < 0) { perror ("fifo open error coord_to_console" ); exit (1) ; }
 
@@ -101,12 +97,11 @@ int main(int argc, char** argv)
             perror("Write:");//print error
             exit(-1);
         }
-        cout <<"3"<< endl;
         if(read(coord_to_console,str,sizeof(str)) < 0){
             perror("Read:"); //error check
             exit(-1);
         }
-        printf("\n...received from the server: %s\n\n\n",str);
+        printf("\n...received from the coord: %s\n\n\n",str);
 
         close(console_to_coord);
         close(coord_to_console);

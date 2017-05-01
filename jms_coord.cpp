@@ -26,14 +26,13 @@ using namespace std;
 /*./jms_coord -l /home/angelique/NetBeansProjects/CppApplication_17/ -n 2 -w out -r in &
  * ./jms_console -w in -r out -o temp.txt
  */
-//void PoolProcess(char *temp, Pool *pool, int position);
+
 int num_of_pools = -1;
 
 int main(int argc, char** argv) 
-{
-    //cout << "!!!!!!!!!!!!!!!!!!!!!!" << endl;
-    int i, jobs_pool = 0, fd, len, current_jobs = 0, pools = 0;
-    char buf[SIZE], *token, *path, *jms_in, *jms_out, poolin[100], poolout[100]; 
+{    
+    int i, jobs_pool = 0, fd, len;
+    char buf[SIZE], *token, *path, *jms_in, *jms_out, poolin[100], poolout[100], message[SIZE]; 
     
     
     for (i = 1; i < 8; i += 2)
@@ -83,14 +82,16 @@ int main(int argc, char** argv)
     console_to_coord = open(myfifo, O_RDONLY | O_NONBLOCK);
     coord_to_console = open(myfifo2, O_WRONLY);
         
-    Pool **pool = new Pool*[10];
+    
     int counter = 0; //Count how many jobs has been submitted 
     char end[5];
+    Pool **pool = new Pool*[100];
+    
+    
     while (strcmp("exit",end) != 0)
     {
     
-        read(console_to_coord, buf, SIZE);
-        //cout << "buf " << buf <<"!"<< endl;
+        read(console_to_coord, buf, SIZE);        
         if (strcmp("exit",buf) == 0)
         {
             printf("Server OFF.\n");
@@ -103,7 +104,7 @@ int main(int argc, char** argv)
             len = strlen(buf);
             if (buf[len - 1] == '\n') buf[len -1] = '\0';   //Get rid of the new line
             token = strtok(buf, "  ");
-            cout << "token = "<< token << endl;
+            //cout << "token = "<< token << endl;
             if (strcmp(token,"submit") == 0) i = 1;
             else if (strcmp(token,"status") == 0) i = 2;
             else if (strcmp(token,"status-all") == 0) i = 3;
@@ -122,33 +123,24 @@ int main(int argc, char** argv)
                     //cout << "token = "<< token << endl;
                     char *temp_str = new char[strlen(token) + 1];
                     strcpy(temp_str, token);
-                    //cout << "job id is  " << temp_str << endl;
                     int position = 0, flag = 0;       
                     counter++;
-                    int message_from_pool, message_to_pool;
-                    cout << "pools : " << num_of_pools + 1 << endl;
+
+
                     for (int i = 0; i <= num_of_pools; i++) //Find which pool has an empty space for a new job
-                    {
-                        //cout << "i " << i << "  " << pool[i]->get_current_Jobs() << endl;
+                    {                        
                         if (pool[i]->get_current_Jobs() < jobs_pool)
-                        {  position = i;break;}
-                        //else{
-                        //    position = num_of_pools + 1;cout<<"Hereeee" << endl;}
+                        {  position = i;break;}                      
                     }
                     if(position == 0) position = num_of_pools + 1;
-                    //cout << "pool position is  " << position << endl;
                     
                     if (pool[position] == NULL) //If pool doesn't exist, create a new one.
                     {
-                        cout << "mphhhhhka " << endl;
                         pool[position] = new Pool(jobs_pool);
                         flag = 1;
                         num_of_pools++;
-                        //cout << "I'm gonna make a new pool process" << endl;
-
                     }
-                    
-                    //cout <<"Pool Process" << endl;
+
                     pool[position]->IncreaseJobs(counter);
                     sprintf(poolin, "%spool%din%d", path, position, pool[position]->get_current_Jobs()); 
                     sprintf(poolout, "%spool%dout%d", path, position, pool[position]->get_current_Jobs());
@@ -163,42 +155,7 @@ int main(int argc, char** argv)
                     }
                     cout << "Fifo done" << endl;
                     
-                    /*
-                     * Exec version
-                     * current_jobs++;
-                    char flag[5];
-                    sprintf(flag, "%d", current_jobs);
-                    if(current_jobs == jobs_pool)
-                    {
-                        current_jobs = 0;
-                        pools++;
-                        //sprintf(flag, "%d", current_jobs);
-                    }*/
                     
-                   /* if(flag != 1)
-                    {
-                        cout << "SAME PROCESS" << endl;
-                        printf ( "Child Pool: Child’s PID: %d\n", getpid());
-                        //cout << "Pool process in coord" << endl;
-                        char str[SIZE];
-                        int mess_from_coord, mess_to_coord;
-                        mess_from_coord = open(poolin, O_RDONLY);
-                        mess_to_coord = open(poolout, O_WRONLY);
-
-
-                        read(mess_from_coord, str, SIZE);
-                        pool[position]->Job_submit(temp_str, position, flag);
-                        strcpy(str, "Pool job finished!");                          
-                        write(mess_to_coord,str,SIZE);
-
-
-                        close(mess_from_coord);
-                        close(mess_to_coord);
-
-                        unlink(poolin);
-                        unlink(poolout);
-                    }
-                    else{*/
                     pid_t poolprocess = fork();
 
                     if (poolprocess == -1) {
@@ -207,27 +164,12 @@ int main(int argc, char** argv)
                     else if (poolprocess == 0) 
                     {
                         /* child */
+                        //cout << "Pool process in coord" << endl;
                         
-                        
-                        /*sprintf(poolin, "pool%din%d", position, pool[position]->get_current_Jobs()); 
-                        sprintf(poolout, "pool%dout%d", position, pool[position]->get_current_Jobs());
-                            
-                        if (mkfifo(poolin, 0666) == -1)
-                        {
-                            printf("fifo in error %s", strerror(errno));
-                        }
-
-                        if (mkfifo(poolout, 0666) == -1)
-                        {
-                            printf("fifo out error %s", strerror(errno));
-                        }
-                        cout << "Fifo done" << endl;*/
-                        cout << "Pool process in coord" << endl;
                         char str[SIZE];
                         int mess_from_coord, mess_to_coord;
                         mess_from_coord = open(poolin, O_RDONLY);
                         mess_to_coord = open(poolout, O_WRONLY);
-
 
                         read(mess_from_coord, str, SIZE);
                         pool[position]->Job_submit(temp_str, position, flag, path);
@@ -240,27 +182,14 @@ int main(int argc, char** argv)
 
                         unlink(poolin);
                         unlink(poolout);
-        
                        
-                        
-                        
-                       /* Exec verion here!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                        * char jobs[5], pool[5];
-                        sprintf(jobs, "%d", jobs_pool); 
-                        sprintf(pool, "%d", pools);
-                        
-                        execlp("./pool", "pool", jobs, pool,temp_str,flag, NULL);
-                        perror("exec failure");*/
-
-                        //printf("[%d]\n", getpid());
-                        //printf ( "Child Pool: Hello I am the pool process\n");
-                        printf ( "Child Pool: Child’s PID: %d\n", getpid());
+                        //printf ( "Child Pool: Child’s PID: %d\n", getpid());
                         //printf ( "Child Pool: Parent’s PID: %d\n", getppid());    
                         exit(EXIT_SUCCESS);
                     }
                     else {
                       /* parent */
-                        cout << "Coord Process" << endl;
+                        //cout << "Coord Process" << endl;
                         pid_t pid;
                         int status;
                         
@@ -289,36 +218,23 @@ int main(int argc, char** argv)
                         //current_jobs--;
                         if (pid == -1)
                           fprintf(stderr, "%d: waitpid: %s\n", getpid(), strerror(errno));
-                        printf ( "Parent Pool: Hello I am the parent process\n" ) ;
-                        printf ( "Parent Pool: Parent’s PID: %d\n", getpid());
-                        printf ( "Parent Pool: Child’s PID: %d\n", poolprocess);
+                        //printf ( "Parent Pool: Hello I am the parent process\n" ) ;
+                        //printf ( "Parent Pool: Parent’s PID: %d\n", getpid());
+                        //printf ( "Parent Pool: Child’s PID: %d\n", poolprocess);
 
-                    }//}
-                    
-                    //PoolProcess(temp_str, pool[position], position);   
-                    
-                        //unlink(poolin);
-                        //unlink(poolout);
-                    
-                    cout << "pools : " << num_of_pools + 1 << endl;
-                    
-                    
-                    
-                    
+                    }
                     delete temp_str; 
-                    
+                    sprintf(message, "JobID: %d,PID: %d", counter, pool[position]->get_JobPid(pool[position]->get_current_Jobs())); 
                 break;}
                 case 2:                   //Second case: syntax:status <JobID> 
                 {
                     token = strtok(NULL, "");
                     //cout << "token = "<< token << endl;
                     char *temp_str = new char[strlen(token) + 1];
-                    strcpy(temp_str, token);
-                    cout << "job id is  " << temp_str << endl;
+                    strcpy(temp_str, token);                   
                     int id = atoi(temp_str);
-                    cout << "job id is  " << id << endl;
                     int flag = 0, i, j;
-                    cout << "Pools: " << num_of_pools + 1 << endl;
+
                     for(i = 0; i <= num_of_pools; i++)
                     {
                         for(j = 0; j < jobs_pool; j++)
@@ -332,10 +248,10 @@ int main(int argc, char** argv)
                         if(flag == 1) break; 
                     }
                     string status;
-                    if(pool[i]->get_Status(j) == 0) status = "Finished";
-                    else if (pool[i]->get_Status(j) == 0) status = "Active";
-                    else status = "Suspended";
-                    cout << "JobID " << id << "  Status: " << status << endl;
+                    if(pool[i]->get_Status(j) == 0) sprintf(message, "JobID: %d,Status: Finished", id); 
+                    else if (pool[i]->get_Status(j) == 0)sprintf(message, "JobID: %d,Status: Active", id);  
+                    else sprintf(message, "JobID: %d,Status: Active", id);
+                    //cout << "JobID " << id << "  Status: " << status << endl;
                     delete temp_str; 
                     
                 break;}
@@ -345,7 +261,6 @@ int main(int argc, char** argv)
                     //cout << "token = "<< token << endl;
                     char *temp_str = new char[strlen(token) + 1];
                     strcpy(temp_str, token);
-                    cout << "job id is  " << temp_str << endl;
                     
                     for(int i = 0; i <= num_of_pools; i++)
                     {
@@ -360,7 +275,7 @@ int main(int argc, char** argv)
                         
                     }                   
                     delete temp_str; 
-                    
+                    //sprintf(message, "JobID: %d,Status: %s", id, status);
                 break;}
                 case 4:                   //Fourth case: syntax:show-active
                 {
@@ -374,7 +289,8 @@ int main(int argc, char** argv)
                                 cout << "JobID " << pool[i]->get_ID(j) << endl;
                             }
                         }  
-                    }     
+                    }  
+                    sprintf(message, "JobID %d", pool[num_of_pools]->get_ID(jobs_pool-1));
                 break;}
                 case 5:                   //Fifth case: syntax:show-pools
                 {
@@ -389,7 +305,7 @@ int main(int argc, char** argv)
                             }
                         }  
                     }     
-                    
+                    strcpy(message, "DONE!");
                 break;}
                 case 6:                   //Sixth case: syntax:show-finished
                 {
@@ -404,17 +320,16 @@ int main(int argc, char** argv)
                             }
                         }  
                     }     
-                    
+                    strcpy(message, "DONE!");
                 break;}
                 case 7:                   //Seventh case: syntax:suspend <JobID>
                 {
                     token = strtok(NULL, "");
                     //cout << "token = "<< token << endl;
                     char *temp_str = new char[strlen(token) + 1];
-                    strcpy(temp_str, token);
-                    //cout << "job id is  " << temp_str << endl;
+                    strcpy(temp_str, token);                    
                     int id = atoi(temp_str);
-                    cout << "job id is  " << id << endl;
+
                     for(int i = 0; i <= num_of_pools; i++)
                     {
                         for(int j = 0; j < jobs_pool; j++)
@@ -428,7 +343,7 @@ int main(int argc, char** argv)
                         }  
                     }    
                     delete temp_str; 
-                    
+                    strcpy(message, "DONE!");
                 break;}
                 case 8:                   //Eighth case: syntax:resume <JobID>
                 {
@@ -436,9 +351,8 @@ int main(int argc, char** argv)
                     //cout << "token = "<< token << endl;
                     char *temp_str = new char[strlen(token) + 1];
                     strcpy(temp_str, token);
-                    //cout << "job id is  " << temp_str << endl;
                     int id = atoi(temp_str);
-                    cout << "job id is  " << id << endl;
+
                     for(int i = 0; i <= num_of_pools; i++)
                     {
                         for(int j = 0; j < jobs_pool; j++)
@@ -452,7 +366,7 @@ int main(int argc, char** argv)
                         }  
                     }    
                     delete temp_str; 
-                    
+                    strcpy(message, "DONE!");
                 break;}
                 case 9:                   //Second case: syntax:shutdown
                 {
@@ -462,7 +376,8 @@ int main(int argc, char** argv)
                         //pool[i]->Shutdown(activejobs);
                         numofjobs += pool[i]->get_current_Jobs();
                     }    
-                    cout << "Served " << numofjobs << " jobs, " << activejobs << " were still in progress." << endl;
+                    sprintf(message, "Served %d jobs, %d were still in progress.", numofjobs, activejobs);
+                    //cout << "Served " << numofjobs << " jobs, " << activejobs << " were still in progress." << endl;
                 break;}
                 case 10:                   
                 {
@@ -470,12 +385,9 @@ int main(int argc, char** argv)
                     strcpy(end, "exit");
                 break;}
                 
-            }
-            //printf("Sending back...\n");
-            //printf("Reply to console: ");
-           // scanf("%s", buf);
+            }           
             if (strcmp(buf, "shutdown") == 0) strcpy(buf, "end");
-            else strcpy(buf, "Hi");
+            else strcpy(buf, message);
            
             
             write(coord_to_console,buf,SIZE);
@@ -484,16 +396,15 @@ int main(int argc, char** argv)
         /* clean buf from any data */
         memset(buf, 0, sizeof(buf));
 
-        //close(client_to_server);
-        //close(server_to_client);
-    }
-    cout <<"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+    }   
     close(console_to_coord);
     close(coord_to_console);
 
     unlink(myfifo);
     unlink(myfifo2);
 
+    
+    for (i = 0; i <= num_of_pools; i++) delete pool[i];
     return 0;
 }
 

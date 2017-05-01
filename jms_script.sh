@@ -40,5 +40,5 @@ then
     du -ah "$path" | grep 'sdi13*' | sort -h | head -"$size"
 else
     echo "PURGE!"
-    find /path/to/file/ | grep car | xargs ls -lh
+    find "$path" | grep 'sdi13*' | xargs rm -fr
 fi
